@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Spamurai",
+  "version": "1.0",
+  "description": "A spam filter for YouTube comments",
+  
+  "permissions": ["storage", "activeTab", "scripting"],
+
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["content.js"]
+    }
+  ],
+  
+  "action": {
+    "default_popup": "./popup/popup.html",
+    "default_icon" : "./assets/icon.png"
+  },
+ "background": {
+    "service_worker": "background.js"
+  },
+   
+  "options_page": "options.html",
+
+  "host_permissions": [
+    "https://www.youtube.com/*"
+  ]
+
+}
