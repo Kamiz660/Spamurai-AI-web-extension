@@ -4,7 +4,7 @@
   "version": "1.0",
   "description": "A spam filter for YouTube comments",
   
-  "permissions": ["storage", "activeTab", "scripting"],
+  "permissions": ["storage", "activeTab", "scripting", "experimental"],
 
   "content_scripts": [
     {
