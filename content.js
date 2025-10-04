@@ -217,7 +217,7 @@ async function analyzeComments() {
     // Highlight comment
     highlightComment(thread, classification);
 
-    // Log AI usage for debugging
+    // Log AI usage for debugging (only for new comments)
     if (usedAI) {
       console.log(`Spamurai AI: "${text.substring(0, 50)}..." → ${classification}`);
     }
