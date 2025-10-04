@@ -65,8 +65,33 @@ document.getElementById('settings-link').addEventListener('click', (e) => {
   chrome.runtime.openOptionsPage();
 });
 
-// Report feedback link
+// Report feedback link with better UX
 document.getElementById('report-feedback-link').addEventListener('click', (e) => {
   e.preventDefault();
-  alert('Feedback feature coming soon!');
+
+  // Create a temporary toast message
+  const toast = document.createElement('div');
+  toast.textContent = 'Feedback feature coming soon!';
+  toast.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #946f6f;
+    color: white;
+    padding: 15px 25px;
+    border-radius: 5px;
+    font-size: 0.9rem;
+    z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    animation: fadeIn 0.3s ease;
+  `;
+
+  document.body.appendChild(toast);
+
+  // Auto-remove after 2 seconds with fade out
+  setTimeout(() => {
+    toast.style.animation = 'fadeOut 0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, 2000);
 });
