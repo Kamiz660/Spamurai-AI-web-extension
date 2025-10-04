@@ -1,8 +1,16 @@
-function updateUI(stats) {
+function updateUI(stats, aiEnabled) {
   document.getElementById('total-scanned').textContent = stats.total;
   document.getElementById('count-red').textContent = `${stats.spam} Spam`;
   document.getElementById('count-yellow').textContent = `${stats.suspicious} Suspicious`;
   document.getElementById('count-green').textContent = `${stats.safe} Safe`;
+
+  // Update AI status indicator
+  const poweredBy = document.getElementById('powered-by');
+  if (aiEnabled) {
+    poweredBy.innerHTML = 'powered by <span style="color: #69ff6e;">AI + keywords</span> 🤖';
+  } else {
+    poweredBy.textContent = 'powered by keyword filtering';
+  }
 }
 
 // Get initial stats when popup opens
@@ -10,7 +18,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
   if (tabs[0]?.url?.includes('youtube.com/watch')) {
     chrome.tabs.sendMessage(tabs[0].id, { action: 'getStats' }, (response) => {
       if (response && response.stats) {
-        updateUI(response.stats);
+        updateUI(response.stats, response.aiEnabled);
       }
     });
   } else {
@@ -22,7 +30,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
 // Listen for stat updates from content script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'updateStats') {
-    updateUI(request.stats);
+    updateUI(request.stats, request.aiEnabled);
   }
 });
 

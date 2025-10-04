@@ -18,9 +18,89 @@ const SPAM_KEYWORDS = {
 const analyzedComments = new Map(); // commentText -> classification
 let stats = { total: 0, spam: 0, suspicious: 0, safe: 0 };
 let highlightsVisible = true;
+let aiSession = null;
+let aiAvailable = false;
 
-// Classify comment based on keywords
-function classifyComment(text) {
+// Initialize AI session
+async function initAI() {
+  try {
+    // Check if the API exists (should be global LanguageModel, not window.ai)
+    if (typeof LanguageModel === 'undefined') {
+      console.log('Spamurai: LanguageModel API not available');
+      return false;
+    }
+
+    // Check availability
+    const availability = await LanguageModel.availability();
+    console.log('Spamurai: AI availability:', availability);
+
+    if (availability === 'no') {
+      console.log('Spamurai: Gemini Nano not available on this device');
+      return false;
+    }
+
+    if (availability === 'after-download') {
+      console.log('Spamurai: Gemini Nano model needs to be downloaded');
+      console.log('Visit chrome://components/ and update "Optimization Guide On Device Model"');
+      return false;
+    }
+
+    // Create AI session with spam detection prompt
+    aiSession = await LanguageModel.create({
+      systemPrompt: `You are a spam detector for YouTube comments. 
+      Analyze if a comment is spam or legitimate.
+      Spam includes: self-promotion, scams, bots, fake engagement, phishing.
+      Legitimate includes: genuine opinions, questions, discussions.
+      Reply with ONLY one word: "spam" or "safe".`,
+      // Specify expected inputs and outputs to avoid warnings
+      expectedInputs: [
+        { type: "text", languages: ["en"] }
+      ],
+      expectedOutputs: [
+        { type: "text", languages: ["en"] }
+      ]
+    });
+
+    aiAvailable = true;
+    console.log('Spamurai: AI classification enabled! 🤖');
+    return true;
+
+  } catch (error) {
+    console.log('Spamurai: AI initialization failed:', error.message);
+    return false;
+  }
+}
+
+// Classify comment using AI (for suspicious cases only)
+async function classifyWithAI(text) {
+  if (!aiSession || !aiAvailable) {
+    return 'suspicious'; // Fallback if AI unavailable
+  }
+
+  try {
+    const result = await aiSession.prompt(
+      `Is this YouTube comment spam?\n\nComment: "${text}"\n\nAnswer:`
+    );
+
+    const response = result.toLowerCase().trim();
+
+    // Parse AI response
+    if (response.includes('spam')) {
+      return 'spam';
+    } else if (response.includes('safe')) {
+      return 'safe';
+    } else {
+      return 'suspicious'; // Unclear response
+    }
+
+  } catch (error) {
+    console.log('Spamurai: AI classification error:', error);
+    return 'suspicious'; // Fallback on error
+  }
+}
+
+// Classify comment based on keywords (TIER 1: Fast pre-filter)
+function classifyByKeywords(text) {
   const lowerText = text.toLowerCase();
 
   // Check high-risk keywords
@@ -38,6 +118,26 @@ function classifyComment(text) {
   }
 
   return 'safe';
+}
+
+// Hybrid classification: Keywords + AI
+async function classifyComment(text) {
+  // TIER 1: Fast keyword check
+  const keywordResult = classifyByKeywords(text);
+
+  // If obviously spam or safe, return immediately
+  if (keywordResult === 'spam' || keywordResult === 'safe') {
+    return { classification: keywordResult, usedAI: false };
+  }
+
+  // TIER 2: Use AI for ambiguous "suspicious" cases
+  if (keywordResult === 'suspicious' && aiAvailable) {
+    const aiResult = await classifyWithAI(text);
+    return { classification: aiResult, usedAI: true };
+  }
+
+  // Fallback: No AI available
+  return { classification: 'suspicious', usedAI: false };
 }
 
 // Highlight comment based on classification
@@ -90,24 +190,24 @@ function removeAllHighlights() {
 }
 
 // Analyze all visible comments
-function analyzeComments() {
+async function analyzeComments() {
   const threads = document.querySelectorAll('ytd-comment-thread-renderer');
 
-  threads.forEach(thread => {
+  for (const thread of threads) {
     const commentEl = thread.querySelector('#content-text');
     const text = commentEl ? commentEl.textContent.trim() : null;
 
-    if (!text) return;
+    if (!text) continue;
 
     // Skip if already analyzed
     if (analyzedComments.has(text)) {
       // Re-apply highlight if needed
       highlightComment(thread, analyzedComments.get(text));
-      return;
+      continue;
     }
 
-    // Classify new comment
-    const classification = classifyComment(text);
+    // Classify new comment (hybrid approach)
+    const { classification, usedAI } = await classifyComment(text);
     analyzedComments.set(text, classification);
 
     // Update stats
@@ -116,7 +216,12 @@ function analyzeComments() {
 
     // Highlight comment
     highlightComment(thread, classification);
-  });
+
+    // Log AI usage for debugging
+    if (usedAI) {
+      console.log(`Spamurai AI: "${text.substring(0, 50)}..." → ${classification}`);
+    }
+  }
 
   // Send stats to popup
   updatePopupStats();
@@ -124,23 +229,31 @@ function analyzeComments() {
 
 // Update popup with current stats
 function updatePopupStats() {
-  chrome.runtime.sendMessage({
-    action: 'updateStats',
-    stats: stats
-  });
+  try {
+    chrome.runtime.sendMessage({
+      action: 'updateStats',
+      stats: stats,
+      aiEnabled: aiAvailable
+    });
+  } catch (error) {
+    // Extension context invalidated - happens when extension reloads
+    // Silently ignore, will reinitialize on page refresh
+  }
 }
 
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'getStats') {
-    sendResponse({ stats: stats });
+    sendResponse({ stats: stats, aiEnabled: aiAvailable });
   } else if (request.action === 'rescan') {
     // Reset everything
     analyzedComments.clear();
     stats = { total: 0, spam: 0, suspicious: 0, safe: 0 };
     removeAllHighlights();
-    analyzeComments();
-    sendResponse({ success: true });
+    analyzeComments().then(() => {
+      sendResponse({ success: true });
+    });
+    return true; // Keep channel open for async response
   } else if (request.action === 'toggleHighlights') {
     highlightsVisible = !highlightsVisible;
     if (highlightsVisible) {
@@ -150,6 +263,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
     sendResponse({ highlightsVisible: highlightsVisible });
   }
+  return true;
 });
 
 // Watch for new comments with MutationObserver
@@ -190,8 +304,10 @@ function observeComments() {
   console.log('Spamurai: Continuous spam detection active');
 }
 
-// Start observing
-observeComments();
+// Initialize AI, then start observing
+initAI().then(() => {
+  observeComments();
+});
 
 // Re-initialize observer when navigating between videos
 let lastUrl = location.href;

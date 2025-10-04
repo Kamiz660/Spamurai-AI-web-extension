@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Spamurai",
-  "version": "2.0",
-  "description": "Real-time spam filter for YouTube comments using keyword detection",
+  "version": "3.0",
+  "description": "Real-time spam filter for YouTube comments using AI + keyword detection",
 
   "permissions": ["storage", "activeTab", "scripting"],
 
