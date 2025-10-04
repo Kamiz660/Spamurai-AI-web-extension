@@ -44,28 +44,29 @@ function classifyComment(text) {
 function highlightComment(threadElement, classification) {
   if (!highlightsVisible) return;
 
-  const commentContent = threadElement.querySelector('#content-text');
-  if (!commentContent) return;
+  // Target the main comment body container
+  const commentBody = threadElement.querySelector('#body') ||
+                      threadElement.querySelector('#comment') ||
+                      threadElement;
+
+  if (!commentBody) return;
 
   // Remove existing highlights
-  commentContent.style.border = '';
-  commentContent.style.backgroundColor = '';
-  commentContent.style.padding = '';
-  commentContent.style.borderRadius = '';
+  commentBody.style.borderLeft = '';
+  commentBody.style.backgroundColor = '';
+  commentBody.style.paddingLeft = '';
 
-  // Apply new highlight
+  // Apply new highlight - using left border
   switch (classification) {
     case 'spam':
-      commentContent.style.border = '2px solid #f05247';
-      commentContent.style.backgroundColor = 'rgba(240, 82, 71, 0.1)';
-      commentContent.style.padding = '8px';
-      commentContent.style.borderRadius = '4px';
+      commentBody.style.borderLeft = '4px solid #f05247';
+      commentBody.style.backgroundColor = 'rgba(240, 82, 71, 0.05)';
+      commentBody.style.paddingLeft = '12px';
       break;
     case 'suspicious':
-      commentContent.style.border = '2px solid rgb(206, 206, 24)';
-      commentContent.style.backgroundColor = 'rgba(206, 206, 24, 0.1)';
-      commentContent.style.padding = '8px';
-      commentContent.style.borderRadius = '4px';
+      commentBody.style.borderLeft = '4px solid rgb(206, 206, 24)';
+      commentBody.style.backgroundColor = 'rgba(206, 206, 24, 0.05)';
+      commentBody.style.paddingLeft = '12px';
       break;
     case 'safe':
       // No highlight for safe comments
@@ -77,12 +78,13 @@ function highlightComment(threadElement, classification) {
 function removeAllHighlights() {
   const threads = document.querySelectorAll('ytd-comment-thread-renderer');
   threads.forEach(thread => {
-    const commentContent = thread.querySelector('#content-text');
-    if (commentContent) {
-      commentContent.style.border = '';
-      commentContent.style.backgroundColor = '';
-      commentContent.style.padding = '';
-      commentContent.style.borderRadius = '';
+    const commentBody = thread.querySelector('#body') ||
+                        thread.querySelector('#comment') ||
+                        thread;
+    if (commentBody) {
+      commentBody.style.borderLeft = '';
+      commentBody.style.backgroundColor = '';
+      commentBody.style.paddingLeft = '';
     }
   });
 }
@@ -152,13 +154,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // Watch for new comments with MutationObserver
 function observeComments() {
-  // Detect if we're on Shorts or regular video
+  // Detect if Shorts or regular video
   const isShorts = window.location.pathname.includes('/shorts/');
 
   // Try multiple selectors based on page type
   let commentSection;
   if (isShorts) {
-    // Shorts comment selectors (try multiple as YouTube updates frequently)
+    // Shorts comment selectors
     commentSection = document.querySelector('ytd-comments#comments') ||
                      document.querySelector('ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-comments-section"]') ||
                      document.querySelector('#comments');
@@ -191,7 +193,7 @@ function observeComments() {
 // Start observing
 observeComments();
 
-// Re-initialize observer when navigating between videos (YouTube is a SPA)
+// Re-initialize observer when navigating between videos
 let lastUrl = location.href;
 new MutationObserver(() => {
   const currentUrl = location.href;
