@@ -43,49 +43,74 @@ button:hover {
 button:active {
     background-color: #7a5555;
 }
-#toggleButtons1 {
-    display: flex;
-    gap: 5px;   
-    justify-content: center;
+
+#summary-section {
+    text-align: center;
+    margin: 20px 0;
 }
-    #toggleButtons1 button {
-        font-size: 1.2rem;
-        padding: .5rem 1.9rem;
-    }
+
+#summary-section p {
+    margin: 10px 0;
+}
 
 #breakdown-items {
     display: flex;
     flex-direction: column;
     width: 100%;
+    gap: 5px;
+    margin-top: 10px;
 }
     #count-green {
-        margin-top: 5px;
-        color: #69ff6e; 
+        color: #69ff6e;
         font-weight: bold;
     }
     #count-red {
-        margin-top: 5px;
-        color: #f05247; 
+        color: #f05247;
         font-weight: bold;
     }
     #count-yellow {
-        margin-top: 5px;
-        color: rgb(206, 206, 24); 
+        color: rgb(206, 206, 24);
         font-weight: bold;
     }
 
 #action-buttons {
     display: flex;
-    margin-top: 5px;
-    gap: 2px; 
+    margin-top: 15px;
+    gap: 5px;
     justify-content: center;
 }
     #action-buttons button {
         font-size: 0.9rem;
-        padding: .4rem .4rem;
+        padding: .6rem .8rem;
     }
+
+footer {
+    margin-top: 20px;
+    width: 100%;
+}
+
+#footer-links {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 10px;
+}
+
+#footer-links a {
+    color: #946f6f;
+    text-decoration: none;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+#footer-links a:hover {
+    color: #ffffff;
+}
 
 #powered-by {
     text-align: center;
+    font-size: 0.7rem;
+    color: rgba(166, 166, 166, 0.811);
+    margin: 5px 0 0 0;
 }
-

@@ -1,0 +1,12 @@
+# Test artifacts
+node_modules/
+coverage/
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

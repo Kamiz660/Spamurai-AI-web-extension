@@ -3,31 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Spamurai</title>
     <link rel="stylesheet" href="popup.css">
+    <script src="popup.js" defer></script>
 </head>
 <body>
     <h1>Spamurai</h1>
     <h2>spam detection at a glance!</h2>
-   <div id="toggleButtons1">
-    <button id="onButton">ON</button>
-    <button id="offButton">OFF</button>
-   </div> 
+
    <div id="summary-section">
-        <p>Total comments scanned on this page: <span id="total-scanned">12</span></p>
+        <p>Total comments scanned: <span id="total-scanned">0</span></p>
         <div id="breakdown-list">
             <p>Spam likelihood breakdown:</p>
             <div id="breakdown-items">
-                <span id="count-red">2 Spam</span>
-                <span id="count-yellow">3 Suspicious</span>              
-                <span id="count-green">7 Safe</span>                 
+                <span id="count-red">0 Spam</span>
+                <span id="count-yellow">0 Suspicious</span>
+                <span id="count-green">0 Safe</span>
             </div>
         </div>
     </div>
     <div id="action-buttons">
         <button id="rescan-button">
                 Rescan Comments
-        </button>    
+        </button>
         <button id="highlight-toggle-button">
             Hide Highlights
         </button>
@@ -48,7 +46,7 @@
                     Report Feedback
             </a>
         </div>
-            <p id="powered-by">powered by gemini</p>
-    </footer>    
+            <p id="powered-by">powered by Gemini Nano</p>
+    </footer>
 </body>
 </html>

@@ -1,0 +1,20 @@
+{
+  "name": "spamurai-tests",
+  "version": "3.0.0",
+  "description": "Unit tests for Spamurai Chrome extension",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:verbose": "jest --verbose",
+    "test:classification": "jest tests/classification.test.js",
+    "test:popup": "jest tests/popup.test.js",
+    "test:content": "jest tests/content.test.js",
+    "test:e2e": "jest tests/e2e.test.js"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.268",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0"
+  }
+}
