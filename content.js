@@ -152,13 +152,29 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // Watch for new comments with MutationObserver
 function observeComments() {
-  const commentSection = document.querySelector('ytd-item-section-renderer#sections');
+  // Detect if we're on Shorts or regular video
+  const isShorts = window.location.pathname.includes('/shorts/');
+
+  // Try multiple selectors based on page type
+  let commentSection;
+  if (isShorts) {
+    // Shorts comment selectors (try multiple as YouTube updates frequently)
+    commentSection = document.querySelector('ytd-comments#comments') ||
+                     document.querySelector('ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-comments-section"]') ||
+                     document.querySelector('#comments');
+  } else {
+    // Regular video comment selectors
+    commentSection = document.querySelector('ytd-item-section-renderer#sections') ||
+                     document.querySelector('ytd-comments#comments');
+  }
 
   if (!commentSection) {
-    console.log('Comment section not loaded yet, retrying...');
+    console.log(`Spamurai: Comment section not loaded yet (${isShorts ? 'Shorts' : 'Video'}), retrying...`);
     setTimeout(observeComments, 3000);
     return;
   }
+
+  console.log(`Spamurai: Found comment section for ${isShorts ? 'Shorts' : 'Video'}`);
 
   // Initial scan
   analyzeComments();
@@ -174,6 +190,21 @@ function observeComments() {
 
 // Start observing
 observeComments();
+
+// Re-initialize observer when navigating between videos (YouTube is a SPA)
+let lastUrl = location.href;
+new MutationObserver(() => {
+  const currentUrl = location.href;
+  if (currentUrl !== lastUrl) {
+    lastUrl = currentUrl;
+    console.log('Spamurai: Page navigation detected, reinitializing...');
+    // Reset stats for new video
+    analyzedComments.clear();
+    stats = { total: 0, spam: 0, suspicious: 0, safe: 0 };
+    // Restart observation
+    observeComments();
+  }
+}).observe(document, { subtree: true, childList: true });
 
 // Periodic re-scan every 5 seconds to catch any missed comments
 setInterval(() => {
