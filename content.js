@@ -24,7 +24,7 @@ let aiAvailable = false;
 // Initialize AI session
 async function initAI() {
   try {
-    // Check if the API exists (should be global LanguageModel, not window.ai)
+    // Check if the API exists
     if (typeof LanguageModel === 'undefined') {
       console.log('Spamurai: LanguageModel API not available');
       return false;
@@ -62,7 +62,7 @@ async function initAI() {
     });
 
     aiAvailable = true;
-    console.log('Spamurai: AI classification enabled! 🤖');
+    console.log('Spamurai: AI classification enabled!');
     return true;
 
   } catch (error) {
