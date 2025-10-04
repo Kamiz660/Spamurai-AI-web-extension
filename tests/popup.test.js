@@ -1,6 +1,6 @@
 /**
- * REAL Tests for popup.js functionality
- * These tests import and test the ACTUAL code from popup.js
+ * Tests for popup.js functionality
+ * These tests import and test the code from popup.js
  */
 
 const { updateUI } = require('../popup/popup.js');

@@ -1,6 +1,6 @@
 /**
- * REAL Tests for spam classification logic
- * These tests import and test the ACTUAL code from content.js
+ * Tests for spam classification logic
+ * These tests import and test the code from content.js
  */
 
 const {

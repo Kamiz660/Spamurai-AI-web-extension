@@ -56,54 +56,54 @@ npm run test:verbose
 
 ### Classification Tests (`classification.test.js`)
 Tests the core spam detection logic:
-- ✅ High-risk keyword detection (spam)
-- ✅ Medium-risk keyword detection (suspicious)
-- ✅ Safe comment classification
-- ✅ Case-insensitive matching
-- ✅ Keyword detection in longer text
-- ✅ Edge cases (empty text, special characters, long comments)
-- ✅ Real-world comment examples
-- ✅ AI classification mock behavior
+- High-risk keyword detection (spam)
+- Medium-risk keyword detection (suspicious)
+- Safe comment classification
+- Case-insensitive matching
+- Keyword detection in longer text
+- Edge cases (empty text, special characters, long comments)
+- Real-world comment examples
+- AI classification mock behavior
 
 **Total: 20+ test cases**
 
 ### Popup Tests (`popup.test.js`)
 Tests the extension popup functionality:
-- ✅ Statistics display updates
-- ✅ AI enabled/disabled status display
-- ✅ Button interactions (rescan, toggle highlights)
-- ✅ Settings and feedback links
-- ✅ Message handling from content script
-- ✅ YouTube page detection
-- ✅ Non-YouTube page handling
+- Statistics display updates
+- AI enabled/disabled status display
+- Button interactions (rescan, toggle highlights)
+- Settings and feedback links
+- Message handling from content script
+- YouTube page detection
+- Non-YouTube page handling
 
 **Total: 15+ test cases**
 
 ### Content Script Tests (`content.test.js`)
 Tests the content script integration:
-- ✅ YouTube comment detection
-- ✅ Comment text extraction
-- ✅ Regular video vs Shorts detection
-- ✅ Highlight application (spam, suspicious, safe)
-- ✅ Highlight removal
-- ✅ Statistics tracking
-- ✅ Duplicate comment handling
-- ✅ Message handlers (getStats, rescan, toggleHighlights)
-- ✅ URL navigation detection
-- ✅ AI session management
+- YouTube comment detection
+- Comment text extraction
+- Regular video vs Shorts detection
+- Highlight application (spam, suspicious, safe)
+- Highlight removal
+- Statistics tracking
+- Duplicate comment handling
+- Message handlers (getStats, rescan, toggleHighlights)
+- URL navigation detection
+- AI session management
 
 **Total: 25+ test cases**
 
 ### E2E Tests (`e2e.test.js`)
 Tests complete user flows:
-- ✅ Opening YouTube video and detecting spam
-- ✅ Rescanning after scrolling
-- ✅ Toggling highlight visibility
-- ✅ Navigating between videos
-- ✅ AI classification workflow
-- ✅ Fallback to keyword classification
-- ✅ Non-YouTube page handling
-- ✅ High-volume comment sections
+- Opening YouTube video and detecting spam
+- Rescanning after scrolling
+- Toggling highlight visibility
+- Navigating between videos
+- AI classification workflow
+- Fallback to keyword classification
+- Non-YouTube page handling
+- High-volume comment sections
 
 **Total: 10+ test cases**
 

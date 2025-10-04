@@ -20,7 +20,6 @@ if (typeof module !== 'undefined' && module.exports) {
 }
 
 // Browser-only code (runs in Chrome extension)
-// Only run if we're in a browser with Chrome APIs AND document is available
 if (typeof chrome !== 'undefined' && chrome.runtime && typeof document !== 'undefined') {
   // Function to initialize popup functionality
   function initPopup() {

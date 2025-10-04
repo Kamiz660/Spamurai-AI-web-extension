@@ -1,6 +1,6 @@
 /**
- * REAL End-to-end test scenarios for Spamurai
- * These tests import and test the ACTUAL code from content.js
+ * nd-to-end test scenarios for Spamurai
+ * These tests import and test the code from content.js
  */
 
 const { classifyByKeywords } = require('../content.js');
