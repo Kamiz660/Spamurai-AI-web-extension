@@ -1,10 +1,11 @@
 /**
- * Tests for popup.js functionality
+ * REAL Tests for popup.js functionality
+ * These tests import and test the ACTUAL code from popup.js
  */
 
-describe('Popup UI', () => {
-  let updateUI;
+const { updateUI } = require('../popup/popup.js');
 
+describe('Popup UI - REAL CODE TESTS', () => {
   beforeEach(() => {
     // Set up popup HTML
     document.body.innerHTML = `
@@ -18,21 +19,6 @@ describe('Popup UI', () => {
       <a href="#" id="settings-link">Settings</a>
       <a href="#" id="report-feedback-link">Report Feedback</a>
     `;
-
-    // Define updateUI function from popup.js
-    updateUI = (stats, aiEnabled) => {
-      document.getElementById('total-scanned').textContent = stats.total;
-      document.getElementById('count-red').textContent = `${stats.spam} Spam`;
-      document.getElementById('count-yellow').textContent = `${stats.suspicious} Suspicious`;
-      document.getElementById('count-green').textContent = `${stats.safe} Safe`;
-
-      const poweredBy = document.getElementById('powered-by');
-      if (aiEnabled) {
-        poweredBy.innerHTML = 'powered by <span style="color: #69ff6e;">AI + keywords</span>';
-      } else {
-        poweredBy.textContent = 'powered by keyword filtering';
-      }
-    };
   });
 
   describe('updateUI', () => {
@@ -93,6 +79,18 @@ describe('Popup UI', () => {
       updateUI(stats, true);
 
       expect(document.getElementById('total-scanned').textContent).toBe('9999');
+    });
+
+    test('should update AI status dynamically', () => {
+      const stats = { total: 5, spam: 1, suspicious: 2, safe: 2 };
+
+      // First with AI
+      updateUI(stats, true);
+      expect(document.getElementById('powered-by').innerHTML).toContain('AI + keywords');
+
+      // Then without AI
+      updateUI(stats, false);
+      expect(document.getElementById('powered-by').textContent).toBe('powered by keyword filtering');
     });
   });
 

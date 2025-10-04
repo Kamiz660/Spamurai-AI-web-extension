@@ -1,8 +1,11 @@
 /**
- * End-to-end test scenarios for Spamurai
+ * REAL End-to-end test scenarios for Spamurai
+ * These tests import and test the ACTUAL code from content.js
  */
 
-describe('E2E: Complete User Flows', () => {
+const { classifyByKeywords } = require('../content.js');
+
+describe('E2E: Complete User Flows - REAL CODE TESTS', () => {
   let stats;
   let analyzedComments;
   let highlightsVisible;
@@ -23,7 +26,7 @@ describe('E2E: Complete User Flows', () => {
       const comments = [
         { text: 'This is really helpful, thanks!', expected: 'safe' },
         { text: 'Buy now and get rich quick!', expected: 'spam' },
-        { text: 'Check out my channel for more', expected: 'suspicious' },
+        { text: 'Check out my similar content', expected: 'suspicious' },
         { text: 'Great explanation of the topic', expected: 'safe' },
         { text: 'FREE MONEY! Click here!', expected: 'spam' }
       ];
@@ -35,21 +38,14 @@ describe('E2E: Complete User Flows', () => {
 
       document.body.appendChild(commentSection);
 
-      // Step 2: Spamurai analyzes comments
-      const classifyByKeywords = (text) => {
-        const lowerText = text.toLowerCase();
-        if (lowerText.includes('buy now') || lowerText.includes('free money') ||
-            lowerText.includes('get rich')) return 'spam';
-        if (lowerText.includes('check out my')) return 'suspicious';
-        return 'safe';
-      };
-
+      // Step 2: Spamurai analyzes comments using REAL function
       const threads = document.querySelectorAll('ytd-comment-thread-renderer');
 
       for (const thread of threads) {
         const contentText = thread.querySelector('#content-text').textContent.trim();
 
         if (!analyzedComments.has(contentText)) {
+          // Using the REAL classifyByKeywords function
           const classification = classifyByKeywords(contentText);
           analyzedComments.set(contentText, classification);
 
@@ -88,9 +84,10 @@ describe('E2E: Complete User Flows', () => {
       document.body.appendChild(thread1);
 
       let contentText = thread1.querySelector('#content-text').textContent.trim();
-      analyzedComments.set(contentText, 'safe');
+      const classification1 = classifyByKeywords(contentText);
+      analyzedComments.set(contentText, classification1);
       stats.total = 1;
-      stats.safe = 1;
+      stats[classification1]++;
 
       expect(stats.total).toBe(1);
 
@@ -100,14 +97,14 @@ describe('E2E: Complete User Flows', () => {
       document.body.appendChild(thread2);
       document.body.appendChild(thread3);
 
-      // Rescan
+      // Rescan using REAL function
       const allThreads = document.querySelectorAll('ytd-comment-thread-renderer');
 
       allThreads.forEach(thread => {
         const text = thread.querySelector('#content-text').textContent.trim();
 
         if (!analyzedComments.has(text)) {
-          const classification = text.toLowerCase().includes('buy') ? 'spam' : 'safe';
+          const classification = classifyByKeywords(text);
           analyzedComments.set(text, classification);
           stats.total++;
           stats[classification]++;
@@ -116,7 +113,8 @@ describe('E2E: Complete User Flows', () => {
 
       expect(stats.total).toBe(3);
       expect(stats.spam).toBe(1);
-      expect(stats.safe).toBe(2);
+      expect(stats.suspicious).toBe(1);
+      expect(stats.safe).toBe(1);
     });
   });
 
@@ -124,7 +122,7 @@ describe('E2E: Complete User Flows', () => {
     test('should hide and show highlights when toggled', () => {
       // Setup comments with highlights
       const thread1 = createMockComment('Buy now!');
-      const thread2 = createMockComment('Check out my channel');
+      const thread2 = createMockComment('Check out my similar content');
       document.body.appendChild(thread1);
       document.body.appendChild(thread2);
 
@@ -167,9 +165,11 @@ describe('E2E: Complete User Flows', () => {
       const thread1 = createMockComment('Buy now!');
       document.body.appendChild(thread1);
 
-      analyzedComments.set('Buy now!', 'spam');
+      const text1 = thread1.querySelector('#content-text').textContent.trim();
+      const classification = classifyByKeywords(text1);
+      analyzedComments.set(text1, classification);
       stats.total = 1;
-      stats.spam = 1;
+      stats[classification]++;
 
       expect(stats.total).toBe(1);
 
@@ -191,10 +191,11 @@ describe('E2E: Complete User Flows', () => {
       const thread2 = createMockComment('This is helpful!');
       document.body.appendChild(thread2);
 
-      const text = thread2.querySelector('#content-text').textContent.trim();
-      analyzedComments.set(text, 'safe');
+      const text2 = thread2.querySelector('#content-text').textContent.trim();
+      const classification2 = classifyByKeywords(text2);
+      analyzedComments.set(text2, classification2);
       stats.total = 1;
-      stats.safe = 1;
+      stats[classification2]++;
 
       expect(stats.total).toBe(1);
       expect(stats.safe).toBe(1);
@@ -211,8 +212,8 @@ describe('E2E: Complete User Flows', () => {
       // Ambiguous comment that triggers AI
       const ambiguousComment = 'Thanks for sharing! Check this out';
 
-      // Keyword check returns suspicious
-      const keywordResult = 'suspicious';
+      // Keyword check returns suspicious (using REAL function)
+      const keywordResult = classifyByKeywords(ambiguousComment);
 
       // AI analyzes and returns verdict
       mockAISession.prompt.mockResolvedValue('safe');
@@ -231,10 +232,10 @@ describe('E2E: Complete User Flows', () => {
 
     test('should fallback to keyword classification when AI unavailable', () => {
       const aiAvailable = false;
-      const comment = 'Check out my channel';
+      const comment = 'Check out this amazing thing';
 
-      // Keywords say suspicious
-      const keywordResult = 'suspicious';
+      // Keywords say suspicious (using REAL function)
+      const keywordResult = classifyByKeywords(comment);
 
       let finalClassification;
       if (keywordResult === 'suspicious' && aiAvailable) {
@@ -274,20 +275,14 @@ describe('E2E: Complete User Flows', () => {
         const texts = [
           'Great video!',
           'Buy now!',
-          'Check out my channel'
+          'Check out this'
         ];
         const text = texts[i % 3];
         const thread = createMockComment(`${text} ${i}`);
         document.body.appendChild(thread);
       }
 
-      // Simulate classification
-      const classifyByKeywords = (text) => {
-        if (text.includes('Buy now')) return 'spam';
-        if (text.includes('Check out')) return 'suspicious';
-        return 'safe';
-      };
-
+      // Simulate classification using REAL function
       const threads = document.querySelectorAll('ytd-comment-thread-renderer');
       threads.forEach(thread => {
         const text = thread.querySelector('#content-text').textContent.trim();
@@ -304,6 +299,23 @@ describe('E2E: Complete User Flows', () => {
 
       expect(stats.total).toBe(100);
       expect(duration).toBeLessThan(1000); // Should complete in under 1 second
+    });
+  });
+
+  describe('Scenario: Real keyword classification edge cases', () => {
+    test('should correctly classify various spam patterns', () => {
+      const testCases = [
+        { text: 'Click here for free money!', expected: 'spam' },
+        { text: 'Subscribe to my channel please', expected: 'spam' },
+        { text: 'Great content, keep it up!', expected: 'safe' },
+        { text: 'Check out my tutorial', expected: 'suspicious' },
+        { text: 'This helped me a lot', expected: 'safe' }
+      ];
+
+      testCases.forEach(({ text, expected }) => {
+        const result = classifyByKeywords(text);
+        expect(result).toBe(expected);
+      });
     });
   });
 });
