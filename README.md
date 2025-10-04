@@ -16,4 +16,6 @@ Manifest is set to YouTube, so the scripts won’t run on other pages.
 2. Open the popup and click "Run."  
 3. The console may take some time if it’s the first run and the AI model hasn’t downloaded yet.  
 4. The script outputs a JSON array labeling each example comment as `spam` or `not spam`.
-5. 
+
+
+
