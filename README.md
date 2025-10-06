@@ -6,7 +6,7 @@ Manifest is set to YouTube, so the scripts won’t run on other pages.
 
 1. Navigate to a YouTube video page.  
 2. The console will log the video title, and the observer will be waiting.  
-3. Whenever you scroll down, the observer detects the first 10 comments (or however many load) and outputs them as a logged array.
+3. Whenever you scroll down, the observer detects the first 20 comments (or however many load) and outputs them as a logged array.
 
 ---
 
