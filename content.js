@@ -312,8 +312,11 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
     analyzeComments();
 
     // Watch for changes
-    const observer = new MutationObserver(() => {
-      analyzeComments();
+    commentObserver = new MutationObserver(() => {
+      clearTimeout(analysisTimeout);
+      analysisTimeout = setTimeout(() => {
+        analyzeComments();
+      }, 300); // Wait 300ms after DOM stops changing
     });
 
     observer.observe(commentSection, { childList: true, subtree: true });
@@ -325,20 +328,42 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
     observeComments();
   });
 
-  // Re-initialize observer when navigating between videos
-  let lastUrl = location.href;
-  new MutationObserver(() => {
-    const currentUrl = location.href;
-    if (currentUrl !== lastUrl) {
-      lastUrl = currentUrl;
-      console.log('Spamurai: Page navigation detected, reinitializing...');
-      // Reset stats for new video
-      analyzedComments.clear();
-      stats = { total: 0, spam: 0, suspicious: 0, safe: 0 };
-      // Restart observation
+// Add getVideoId function
+function getVideoId(url) {
+  // Match regular video
+  let match = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+  if (match) return match[1];
+  
+  // Match Shorts
+  match = url.match(/\/shorts\/([a-zA-Z0-9_-]{11})/);
+  if (match) return match[1];
+  
+  return null;
+}
+
+// Track current video
+let currentVideoId = getVideoId(location.href);
+
+// Listen to YouTube's native navigation event
+window.addEventListener('yt-navigate-finish', () => {
+  const newVideoId = getVideoId(location.href);
+  
+  // Only reset if actually switching to a different video
+  if (newVideoId && newVideoId !== currentVideoId) {
+    currentVideoId = newVideoId;
+    console.log('Spamurai: New video detected:', newVideoId);
+    
+    // Reset stats for new video
+    analyzedComments.clear();
+    stats = { total: 0, spam: 0, suspicious: 0, safe: 0 };
+    removeAllHighlights();
+    
+    // Restart observation (wait for comments to load)
+    setTimeout(() => {
       observeComments();
-    }
-  }).observe(document, { subtree: true, childList: true });
+    }, 400);
+  }
+}, true);
 
   // Periodic re-scan every 5 seconds to catch any missed comments
   setInterval(() => {
