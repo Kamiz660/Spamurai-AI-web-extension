@@ -1,11 +1,11 @@
-// Exportable function for updating UI
+// popup.js - Fixed version with proper error handling
+
 function updateUI(stats, aiEnabled) {
   document.getElementById('total-scanned').textContent = stats.total;
   document.getElementById('count-red').textContent = `${stats.spam} Spam`;
   document.getElementById('count-yellow').textContent = `${stats.suspicious} Suspicious`;
   document.getElementById('count-green').textContent = `${stats.safe} Safe`;
 
-  // Update AI status indicator
   const poweredBy = document.getElementById('powered-by');
   if (aiEnabled) {
     poweredBy.innerHTML = 'powered by <span style="color: #69ff6e;">AI + keywords</span>';
@@ -14,124 +14,117 @@ function updateUI(stats, aiEnabled) {
   }
 }
 
-// Export for testing (Node.js only)
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { updateUI };
+function showError(message) {
+  const statusElement = document.getElementById('status-message');
+  if (statusElement) {
+    statusElement.textContent = message;
+    statusElement.style.display = 'block';
+  }
 }
 
-// Browser-only code (runs in Chrome extension)
-if (typeof chrome !== 'undefined' && chrome.runtime && typeof document !== 'undefined') {
-  // Function to initialize popup functionality
-  function initPopup() {
-    // Check if DOM elements exist before trying to use them
-    if (!document.getElementById('rescan-button')) {
-      return; // Exit early if in test environment without DOM
+function hideError() {
+  const statusElement = document.getElementById('status-message');
+  if (statusElement) {
+    statusElement.style.display = 'none';
+  }
+}
+
+// Safe message sending with error handling
+function sendMessageToContentScript(message, callback) {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (!tabs || tabs.length === 0) {
+      showError('No active tab found');
+      return;
     }
 
-    // Get initial stats when popup opens
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]?.url?.includes('youtube.com/watch')) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: 'getStats' }, (response) => {
-          if (response && response.stats) {
-            updateUI(response.stats, response.aiEnabled);
-          }
-        });
-      } else {
-        // Not on a YouTube video page
-        const totalScanned = document.getElementById('total-scanned');
-        if (totalScanned) {
-          totalScanned.textContent = '0';
-        }
+    const tab = tabs[0];
+    
+    // Check if it's a YouTube page
+    if (!tab.url || !tab.url.includes('youtube.com/watch')) {
+      showError('Please open a YouTube video page');
+      updateUI({ total: 0, spam: 0, suspicious: 0, safe: 0 }, false);
+      return;
+    }
+
+    chrome.tabs.sendMessage(tab.id, message, (response) => {
+      // Check for runtime errors
+      if (chrome.runtime.lastError) {
+        console.log('Connection error:', chrome.runtime.lastError.message);
+        showError('Spamurai not loaded on this page. Try refreshing.');
+        updateUI({ total: 0, spam: 0, suspicious: 0, safe: 0 }, false);
+        return;
+      }
+
+      hideError();
+      
+      if (callback && response) {
+        callback(response);
       }
     });
+  });
+}
 
-    // Listen for stat updates from content script
-    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-      if (request.action === 'updateStats') {
-        updateUI(request.stats, request.aiEnabled);
+// Initialize popup
+document.addEventListener('DOMContentLoaded', () => {
+  // Request stats from content script
+  sendMessageToContentScript({ action: 'getStats' }, (response) => {
+    if (response && response.stats) {
+      updateUI(response.stats, response.aiEnabled);
+    }
+  });
+
+  // Rescan button
+  document.getElementById('rescan-button')?.addEventListener('click', () => {
+    const button = document.getElementById('rescan-button');
+    button.disabled = true;
+    button.textContent = 'Scanning...';
+
+    sendMessageToContentScript({ action: 'rescan' }, (response) => {
+      button.disabled = false;
+      button.textContent = 'Rescan';
+      
+      if (response && response.success) {
+        // Stats will be updated via message from content script
+        showError('Scan complete!');
+        setTimeout(hideError, 2000);
       }
     });
+  });
 
-    // Rescan button
-    const rescanButton = document.getElementById('rescan-button');
-    if (rescanButton) {
-      rescanButton.addEventListener('click', () => {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          chrome.tabs.sendMessage(tabs[0].id, { action: 'rescan' }, (response) => {
-            if (response && response.success) {
-              console.log('Rescan completed');
-            }
-          });
-        });
-      });
-    }
+  // Toggle highlights button
+  document.getElementById('highlight-toggle-button')?.addEventListener('click', () => {
+    sendMessageToContentScript({ action: 'toggleHighlights' }, (response) => {
+      if (response) {
+        const button = document.getElementById('highlight-toggle-button');
+        button.textContent = response.highlightsVisible ? 'Hide Highlights' : 'Show Highlights';
+      }
+    });
+  });
 
-    // Toggle highlights button
-    let highlightsVisible = true;
-    const toggleButton = document.getElementById('highlight-toggle-button');
-    if (toggleButton) {
-      toggleButton.addEventListener('click', () => {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          chrome.tabs.sendMessage(tabs[0].id, { action: 'toggleHighlights' }, (response) => {
-            if (response) {
-              highlightsVisible = response.highlightsVisible;
-              toggleButton.textContent =
-                highlightsVisible ? 'Hide Highlights' : 'Show Highlights';
-            }
-          });
-        });
-      });
-    }
+  // Settings link
+  document.getElementById('settings-link')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    chrome.runtime.openOptionsPage();
+  });
 
-    // Settings link
-    const settingsLink = document.getElementById('settings-link');
-    if (settingsLink) {
-      settingsLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        chrome.runtime.openOptionsPage();
-      });
-    }
+  // Feedback link
+  document.getElementById('report-feedback-link')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    chrome.tabs.create({ 
+      url: 'https://github.com/yourusername/spamurai/issues' 
+    });
+  });
+});
 
-    // Report feedback link with better UX
-    const feedbackLink = document.getElementById('report-feedback-link');
-    if (feedbackLink) {
-      feedbackLink.addEventListener('click', (e) => {
-        e.preventDefault();
-
-        // Create a temporary toast message
-        const toast = document.createElement('div');
-        toast.textContent = 'Feedback feature coming soon!';
-        toast.style.cssText = `
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          background-color: #946f6f;
-          color: white;
-          padding: 15px 25px;
-          border-radius: 5px;
-          font-size: 0.9rem;
-          z-index: 1000;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-          animation: fadeIn 0.3s ease;
-        `;
-
-        document.body.appendChild(toast);
-
-        // Auto-remove after 2 seconds with fade out
-        setTimeout(() => {
-          toast.style.animation = 'fadeOut 0.3s ease';
-          setTimeout(() => toast.remove(), 300);
-        }, 2000);
-      });
-    }
+// Listen for stats updates from content script
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'updateStats') {
+    updateUI(request.stats, request.aiEnabled);
+    hideError();
   }
+});
 
-  // Wait for DOM to be ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initPopup);
-  } else {
-    // DOM already ready
-    initPopup();
-  }
+// Export for testing
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { updateUI };
 }

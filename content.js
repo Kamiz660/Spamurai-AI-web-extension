@@ -1,11 +1,11 @@
-// Spam detection keywords
 const SPAM_KEYWORDS = {
   high: [
     'buy now', 'click here', 'free money', 'make money fast', 'earn cash',
     'bitcoin', 'crypto', 'investment opportunity', 'get rich', 'prize winner',
     'congratulations you won', 'claim your prize', 'limited time offer',
     'act now', 'subscribe to my channel', 'check out my channel', 'sub4sub',
-    'onlyfans', 'telegram', 'whatsapp me', 'dm me', 'text me at'
+    'onlyfans', 'telegram', 'whatsapp me', 'dm me', 'text me at',
+    'passive income', 'work from home', 'financial freedom', 'no experience needed'
   ],
   medium: [
     'check out', 'visit my', 'link in bio', 'click link', 'follow me',
@@ -14,14 +14,50 @@ const SPAM_KEYWORDS = {
   ]
 };
 
-// Classify comment based on keywords (TIER 1: Fast pre-filter)
+// Spam patterns (regex-based)
+const SPAM_PATTERNS = {
+  // URLs with common spam domains or shortened links
+  urls: /(?:bit\.ly|tinyurl|t\.co|goo\.gl|ow\.ly|short\.link|cutt\.ly)/i,
+  
+  // Phone numbers (various formats)
+  phone: /(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/,
+  
+  // Email addresses
+  email: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/,
+  
+  // Repeated characters (e.g., "HEEEEEY", "!!!!!!!")
+  repeated: /(.)\1{4,}/,
+  
+  // Excessive emojis (5+ in a row)
+  excessiveEmoji: /([\u{1F600}-\u{1F64F}]){5,}/u,
+  
+  // Money symbols with numbers
+  money: /[$£€¥₹]\s*\d+|(\d+\s*[$£€¥₹])/,
+  
+  // Suspicious Unicode (fake bold/italic text used in spam)
+  // Mathematical Alphanumeric Symbols block (bold/italic/script variants)
+  fakeUnicode: /[\u{1D400}-\u{1D7FF}]/u
+};
+
 function classifyByKeywords(text) {
   const lowerText = text.toLowerCase();
 
-  // Check high-risk keywords
+  // Check high-risk keywords first
   for (const keyword of SPAM_KEYWORDS.high) {
     if (lowerText.includes(keyword)) {
       return 'spam';
+    }
+  }
+
+  // Check spam patterns
+  for (const [patternName, pattern] of Object.entries(SPAM_PATTERNS)) {
+    if (pattern.test(text)) {
+      // URLs and phone numbers are high confidence spam indicators
+      if (['urls', 'phone', 'email'].includes(patternName)) {
+        return 'spam';
+      }
+      // Other patterns are medium confidence
+      return 'suspicious';
     }
   }
 
@@ -32,7 +68,26 @@ function classifyByKeywords(text) {
     }
   }
 
+  // Additional heuristics
+  const commentLength = text.trim().length;
+  const upperCaseRatio = (text.match(/[A-Z]/g) || []).length / commentLength;
+  
+  // Very short comments with links/phones already caught above
+  // Comments with >70% uppercase are suspicious
+  if (upperCaseRatio > 0.7 && commentLength > 10) {
+    return 'suspicious';
+  }
+
   return 'safe';
+}
+
+// Export for testing
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    SPAM_KEYWORDS,
+    SPAM_PATTERNS,
+    classifyByKeywords
+  };
 }
 
 // Classify comment using AI (for suspicious cases only)
