@@ -105,6 +105,7 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
   let highlightsVisible = true;
   let aiSession = null;
   let aiAvailable = false;
+  let analysisTimeout;
 
   // Initialize AI session
   async function initAI() {
@@ -312,11 +313,11 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
     analyzeComments();
 
     // Watch for changes
-    commentObserver = new MutationObserver(() => {
+    let observer = new MutationObserver(() => {
       clearTimeout(analysisTimeout);
       analysisTimeout = setTimeout(() => {
         analyzeComments();
-      }, 300); // Wait 300ms after DOM stops changing
+      }, 400); // Wait 300ms after DOM stops changing
     });
 
     observer.observe(commentSection, { childList: true, subtree: true });
