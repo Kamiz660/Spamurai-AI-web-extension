@@ -8,7 +8,7 @@ function updateUI(stats, aiEnabled) {
   // Update AI status indicator
   const poweredBy = document.getElementById('powered-by');
   if (aiEnabled) {
-    poweredBy.innerHTML = 'powered by <span style="color: #69ff6e;">AI + keywords</span>';
+    poweredBy.innerHTML = 'powered by <span style="color: #69ff6e;">gemini nano</span>';
   } else {
     poweredBy.textContent = 'powered by keyword filtering';
   }
