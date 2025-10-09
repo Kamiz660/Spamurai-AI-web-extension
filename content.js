@@ -312,6 +312,9 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
     // Initial scan
     analyzeComments();
 
+    // Clear any previous observer
+    if (observer) observer.disconnect();
+
     // Watch for changes
     let observer = new MutationObserver(() => {
       clearTimeout(analysisTimeout);
