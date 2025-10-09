@@ -89,8 +89,8 @@ async function classifyComment(text, aiSession, aiAvailable) {
 
 // Extract video ID from URL
 function getVideoId(url) {
-  // Only process YouTube URLs - check for proper domain boundaries
-  if (!url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)/)) {
+  // Only process YouTube URLs - anchor to start and check for proper domain boundaries
+  if (!url.match(/^(?:https?:\/\/)?(?:(?:www|m|music)\.)?(?:youtube\.com|youtu\.be)(?:\/|$|\?|#)/)) {
     return null;
   }
   // Match regular video
@@ -103,7 +103,6 @@ function getVideoId(url) {
 
   return null;
 }
-
 // Check if URL is a Shorts video
 function isShorts(url) {
   return url.includes('/shorts/');
