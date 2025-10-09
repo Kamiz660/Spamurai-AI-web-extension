@@ -39,13 +39,13 @@ describe('Popup UI - REAL CODE TESTS', () => {
     });
 
     test('should show AI enabled status', () => {
-      const stats = { total: 10, spam: 2, suspicious: 3, safe: 5 };
+    const stats = { total: 10, spam: 2, suspicious: 3, safe: 5 };
 
-      updateUI(stats, true);
+    updateUI(stats, true);
 
-      const poweredBy = document.getElementById('powered-by');
-      expect(poweredBy.innerHTML).toContain('AI + keywords');
-      expect(poweredBy.innerHTML).toContain('#69ff6e');
+     const poweredBy = document.getElementById('powered-by');
+     expect(poweredBy.innerHTML).toContain('gemini nano');
+     expect(poweredBy.innerHTML).toContain('#69ff6e');
     });
 
     test('should show keyword-only status when AI disabled', () => {
@@ -86,7 +86,7 @@ describe('Popup UI - REAL CODE TESTS', () => {
 
       // First with AI
       updateUI(stats, true);
-      expect(document.getElementById('powered-by').innerHTML).toContain('AI + keywords');
+      expect(document.getElementById('powered-by').innerHTML).toContain('gemini nano');
 
       // Then without AI
       updateUI(stats, false);

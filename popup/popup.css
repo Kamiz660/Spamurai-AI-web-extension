@@ -18,7 +18,7 @@ body {
 
 h1 {
     font-size: 18px;    
-    margin: 0 0 0 0;
+    margin: 0;
 }
 h2 {
     font-size: 0.9rem;
@@ -42,6 +42,7 @@ button:hover {
 }
 button:active {
     background-color: #7a5555;
+    transform: scale(0.97);
 }
 
 #summary-section {
@@ -60,6 +61,7 @@ button:active {
     gap: 5px;
     margin-top: 10px;
 }
+
     #count-green {
         color: #69ff6e;
         font-weight: bold;

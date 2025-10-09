@@ -83,13 +83,71 @@ async function classifyComment(text, aiSession, aiAvailable) {
   return { classification: 'suspicious', usedAI: false };
 }
 
+// ============================================
+// UTILITY FUNCTIONS (Testable)
+// ============================================
+
+// Extract video ID from URL
+function getVideoId(url) {
+  // Only process YouTube URLs - anchor to start and check for proper domain boundaries
+  if (!url.match(/^(?:https?:\/\/)?(?:(?:www|m|music)\.)?(?:youtube\.com|youtu\.be)(?:\/|$|\?|#)/)) {
+    return null;
+  }
+  // Match regular video
+  let match = url.match(/[?&]v=([a-zA-Z0-9_-]{11})(?:[&\s#]|$)/);
+  if (match) return match[1];
+
+  // Match Shorts
+  match = url.match(/\/shorts\/([a-zA-Z0-9_-]{11})/);
+  if (match) return match[1];
+
+  return null;
+}
+// Check if URL is a Shorts video
+function isShorts(url) {
+  return url.includes('/shorts/');
+}
+
+// Get comment section selectors based on video type
+function getCommentSectionSelectors(isShortsVideo) {
+  if (isShortsVideo) {
+    return [
+      'ytd-comments#comments',
+      'ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-comments-section"]',
+      '#comments'
+    ];
+  } else {
+    return [
+      'ytd-item-section-renderer#sections',
+      'ytd-comments#comments'
+    ];
+  }
+}
+
+// Find comment section in DOM
+function findCommentSection(url) {
+  const shorts = isShorts(url);
+  const selectors = getCommentSectionSelectors(shorts);
+
+  for (const selector of selectors) {
+    const section = document.querySelector(selector);
+    if (section) return section;
+  }
+
+  return null;
+}
+
 // Export for testing (only in test environment)
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     SPAM_KEYWORDS,
     classifyByKeywords,
     classifyWithAI,
-    classifyComment
+    classifyComment,
+    getVideoId,
+    isShorts,
+    getCommentSectionSelectors,
+    findCommentSection
   };
 }
 
@@ -99,14 +157,17 @@ if (typeof module !== 'undefined' && module.exports) {
 
 // Only run in browser context
 if (typeof chrome !== 'undefined' && chrome.runtime) {
-  // Track analyzed comments
-  const analyzedComments = new Map(); // commentText -> classification
+  // Track analyzed comments - use Set for faster lookups
+  const analyzedComments = new Map(); // commentText -> { classification, element }
+  let suspiciousComments = []; // Comments waiting for AI analysis
   let stats = { total: 0, spam: 0, suspicious: 0, safe: 0 };
   let highlightsVisible = true;
   let aiSession = null;
   let aiAvailable = false;
+  let analysisTimeout;
+  let isProcessingAI = false; // Prevent duplicate AI processing
 
-  // Initialize AI session
+  // Initialize AI session (non-blocking)
   async function initAI() {
     try {
       // Check if the API exists
@@ -137,7 +198,6 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
         Spam includes: self-promotion, scams, bots, fake engagement, phishing.
         Legitimate includes: genuine opinions, questions, discussions.
         Reply with ONLY one word: "spam" or "safe".`,
-        // Specify expected inputs and outputs to avoid warnings
         expectedInputs: [
           { type: "text", languages: ["en"] }
         ],
@@ -205,9 +265,10 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
     });
   }
 
-  // Analyze all visible comments
+  // Analyze comments with instant keyword detection
   async function analyzeComments() {
     const threads = document.querySelectorAll('ytd-comment-thread-renderer');
+    let newSuspicious = [];
 
     for (const thread of threads) {
       const commentEl = thread.querySelector('#content-text');
@@ -217,30 +278,114 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
 
       // Skip if already analyzed
       if (analyzedComments.has(text)) {
+        const existing = analyzedComments.get(text);
         // Re-apply highlight if needed
-        highlightComment(thread, analyzedComments.get(text));
+        highlightComment(thread, existing.classification);
         continue;
       }
 
-      // Classify new comment (hybrid approach)
-      const { classification, usedAI } = await classifyComment(text, aiSession, aiAvailable);
-      analyzedComments.set(text, classification);
+      // INSTANT keyword classification (no await, no AI yet)
+      const keywordResult = classifyByKeywords(text);
 
-      // Update stats
+      // Store with element reference
+      analyzedComments.set(text, {
+        classification: keywordResult,
+        element: thread,
+        text: text
+      });
+
+      // Update stats immediately
       stats.total++;
-      stats[classification]++;
+      stats[keywordResult]++;
 
-      // Highlight comment
-      highlightComment(thread, classification);
-
-      // Log AI usage for debugging (only for new comments)
-      if (usedAI) {
-        console.log(`Spamurai AI: "${text.substring(0, 50)}..." → ${classification}`);
+      // Apply highlight IMMEDIATELY for spam and safe
+      if (keywordResult === 'spam' || keywordResult === 'safe') {
+        highlightComment(thread, keywordResult);
+      } else if (keywordResult === 'suspicious') {
+        // Apply suspicious highlight immediately
+        highlightComment(thread, 'suspicious');
+        // Queue for AI refinement
+        if (aiAvailable || aiSession) {
+          newSuspicious.push({ text, thread });
+        }
       }
     }
 
-    // Send stats to popup
+    // Add new suspicious comments to queue
+    if (newSuspicious.length > 0) {
+      suspiciousComments = [...suspiciousComments, ...newSuspicious];
+      // Process AI in background without blocking
+      processSuspiciousWithAI();
+    }
+
+    // Send stats to popup immediately
     updatePopupStats();
+  }
+
+  // Process suspicious comments with AI in parallel batches
+  async function processSuspiciousWithAI() {
+    // Prevent duplicate processing
+    if (isProcessingAI || !aiAvailable || suspiciousComments.length === 0) {
+      return;
+    }
+
+    isProcessingAI = true;
+
+    // Process in batches of 5 for better performance
+    const BATCH_SIZE = 5;
+
+    while (suspiciousComments.length > 0) {
+      const batch = suspiciousComments.splice(0, BATCH_SIZE);
+
+      // Process batch in parallel
+      await Promise.all(batch.map(async ({ text, thread }) => {
+        try {
+          const aiResult = await classifyWithAI(text, aiSession, aiAvailable);
+
+          // Update stored classification
+          const stored = analyzedComments.get(text);
+          if (stored) {
+            // Update stats (remove old, add new)
+            stats[stored.classification]--;
+            stats[aiResult]++;
+
+            stored.classification = aiResult;
+
+            // Update highlight
+            highlightComment(thread, aiResult);
+
+            console.log(`Spamurai AI: "${text.substring(0, 50)}..." → ${aiResult}`);
+          }
+        } catch (error) {
+          console.log('Spamurai: AI error for comment:', error);
+        }
+      }));
+
+      // Update popup after each batch
+      updatePopupStats();
+
+      // Small delay between batches to avoid overwhelming
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    isProcessingAI = false;
+  }
+
+  // Re-analyze suspicious comments when AI becomes available
+  async function reanalyzeSuspiciousComments() {
+    // Find all suspicious comments
+    suspiciousComments = [];
+
+    for (const [text, data] of analyzedComments.entries()) {
+      if (data.classification === 'suspicious' && data.element) {
+        suspiciousComments.push({ text, thread: data.element });
+      }
+    }
+
+    if (suspiciousComments.length > 0) {
+      console.log(`Spamurai: Re-analyzing ${suspiciousComments.length} suspicious comments with AI`);
+      await processSuspiciousWithAI();
+    }
   }
 
   // Update popup with current stats
@@ -264,6 +409,7 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
     } else if (request.action === 'rescan') {
       // Reset everything
       analyzedComments.clear();
+      suspiciousComments = [];
       stats = { total: 0, spam: 0, suspicious: 0, safe: 0 };
       removeAllHighlights();
       analyzeComments().then(() => {
@@ -282,66 +428,82 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
     return true;
   });
 
-  // Watch for new comments with MutationObserver
-  function observeComments() {
-    // Detect if Shorts or regular video
-    const isShorts = window.location.pathname.includes('/shorts/');
+  // Watch for new comments
+  let spamuraiObserver = null;
 
-    // Try multiple selectors based on page type
-    let commentSection;
-    if (isShorts) {
-      // Shorts comment selectors
-      commentSection = document.querySelector('ytd-comments#comments') ||
-                       document.querySelector('ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-comments-section"]') ||
-                       document.querySelector('#comments');
-    } else {
-      // Regular video comment selectors
-      commentSection = document.querySelector('ytd-item-section-renderer#sections') ||
-                       document.querySelector('ytd-comments#comments');
-    }
+  function observeComments() {
+    // Use the utility function to find comment section
+    const commentSection = findCommentSection(window.location.href);
 
     if (!commentSection) {
-      console.log(`Spamurai: Comment section not loaded yet (${isShorts ? 'Shorts' : 'Video'}), retrying...`);
-      setTimeout(observeComments, 3000);
+      const shorts = isShorts(window.location.href);
+      console.log(`Spamurai: Comment section not loaded yet (${shorts ? 'Shorts' : 'Video'}), retrying...`);
+      // 500ms retry
+      setTimeout(observeComments, 500);
       return;
     }
 
-    console.log(`Spamurai: Found comment section for ${isShorts ? 'Shorts' : 'Video'}`);
+    const shorts = isShorts(window.location.href);
+    console.log(`Spamurai: Found comment section for ${shorts ? 'Shorts' : 'Video'}`);
 
     // Initial scan
     analyzeComments();
 
+    // Clear any previous observer
+    if (spamuraiObserver) {
+      spamuraiObserver.disconnect();
+    }
+
     // Watch for changes
-    const observer = new MutationObserver(() => {
-      analyzeComments();
+    spamuraiObserver = new MutationObserver(() => {
+      clearTimeout(analysisTimeout);
+      analysisTimeout = setTimeout(() => {
+        analyzeComments();
+      }, 300); // Reduced from 400ms
     });
 
-    observer.observe(commentSection, { childList: true, subtree: true });
+    spamuraiObserver.observe(commentSection, { childList: true, subtree: true });
     console.log('Spamurai: Continuous spam detection active');
   }
 
-  // Initialize AI, then start observing
+  // Start observing, AI loads in parallel
+  observeComments();
+
+  // Initialize AI in background - re-analyze suspicious when ready
   initAI().then(() => {
-    observeComments();
+    if (aiAvailable) {
+      console.log('Spamurai: AI ready, re-analyzing suspicious comments');
+      reanalyzeSuspiciousComments();
+    }
   });
 
-  // Re-initialize observer when navigating between videos
-  let lastUrl = location.href;
-  new MutationObserver(() => {
-    const currentUrl = location.href;
-    if (currentUrl !== lastUrl) {
-      lastUrl = currentUrl;
-      console.log('Spamurai: Page navigation detected, reinitializing...');
+  // Track current video
+  let currentVideoId = getVideoId(location.href);
+
+  // Listen to YouTube's native navigation event
+  window.addEventListener('yt-navigate-finish', () => {
+    const newVideoId = getVideoId(location.href);
+
+    // Only reset if switching to a different video
+    if (newVideoId && newVideoId !== currentVideoId) {
+      currentVideoId = newVideoId;
+      console.log('Spamurai: New video detected:', newVideoId);
+
       // Reset stats for new video
       analyzedComments.clear();
+      suspiciousComments = [];
       stats = { total: 0, spam: 0, suspicious: 0, safe: 0 };
-      // Restart observation
-      observeComments();
-    }
-  }).observe(document, { subtree: true, childList: true });
+      removeAllHighlights();
 
-  // Periodic re-scan every 5 seconds to catch any missed comments
+      // Restart observation (wait for comments to load)
+      setTimeout(() => {
+        observeComments();
+      }, 400);
+    }
+  }, true);
+
+  // Periodic re-scan every 3s
   setInterval(() => {
     analyzeComments();
-  }, 5000);
+  }, 3000);
 }

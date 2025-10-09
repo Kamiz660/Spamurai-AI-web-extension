@@ -1,5 +1,5 @@
 /**
- * nd-to-end test scenarios for Spamurai
+ * end-to-end test scenarios for Spamurai
  * These tests import and test the code from content.js
  */
 
