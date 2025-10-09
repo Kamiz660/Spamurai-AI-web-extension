@@ -10,7 +10,7 @@ Manifest is set to YouTube, so the scripts won’t run on other pages.
 - Operating system: Windows 10 or 11; macOS 13+ (Ventura and onwards); Linux; or ChromeOS (from Platform 16389.0.0 and onwards) on Chromebook Plus devices. Chrome for Android, iOS, and ChromeOS on non-Chromebook Plus devices are not yet supported by the APIs which use Gemini Nano.
 - Storage: At least 22 GB of free space on the volume that contains your Chrome profile.
   
-...
+---
 
 ## How to use Spamurai
 
