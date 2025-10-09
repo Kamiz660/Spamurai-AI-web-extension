@@ -12,7 +12,7 @@ Manifest is set to YouTube, so the scripts won’t run on other pages.
 
 ## How to use Spamurai
 
-1. Pull the main branch of the Spamurai repo.
+1. Clone the main branch of the Spamurai repo or Download ZIP and Extract.
 2. Go to chrome://extensions/, enable Developer Mode, then click Load unpacked and select the Spamurai-AI-web-extension folder.
 3. Go to any YouTube video page.
 4. Open the developer console and paste the following to download the AI model:
@@ -35,6 +35,12 @@ If Spamurai AI isn’t working properly, follow these steps:
 4. Then relaunch Chrome
 
 ---
+
+## Working Example
+<img width="965" height="603" alt="example" src="https://github.com/user-attachments/assets/e6e87abf-256b-49c2-9c66-04a4f4dac312" />
+examples of how it shows up on youtube comments
+
+If you want to quickly check if it works, go to any popular crypto, stock, or book recommendation video.
 
 ## How the Scraper Works
 
