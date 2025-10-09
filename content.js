@@ -106,6 +106,7 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
   let aiSession = null;
   let aiAvailable = false;
   let analysisTimeout;
+  let observer;
 
   // Initialize AI session
   async function initAI() {
@@ -316,7 +317,7 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
     if (observer) observer.disconnect();
 
     // Watch for changes
-    let observer = new MutationObserver(() => {
+    observer = new MutationObserver(() => {
       clearTimeout(analysisTimeout);
       analysisTimeout = setTimeout(() => {
         analyzeComments();
