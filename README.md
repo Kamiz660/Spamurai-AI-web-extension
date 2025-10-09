@@ -12,11 +12,7 @@ Manifest is set to YouTube, so the scripts won’t run on other pages.
 
 ## How to use Spamurai
 
-1. Open a new tab and go to: chrome://flags
-2. Set "Enables optimization guide on device" to "Enabled BypassPerfRequirement"
-3. Set "Prompt API for Gemini Nano" to "Enabled"
-4. Then relaunch chrome
-4. Then go to the developer console and download the model with this script: 
+1. Then go to the developer console and download the model with this script: 
 ``const session = await LanguageModel.create({
   monitor(m) {
     m.addEventListener('downloadprogress', (e) => {
@@ -24,10 +20,10 @@ Manifest is set to YouTube, so the scripts won’t run on other pages.
     });
   },
 });``
-5. Pull the main branch of the Spamurai repo
-6. Go to chrome://extensions/ and enable developer mode, then click load unpacked and select the Spamurai-AI-web-extension
-7. Go to a YouTube video page.  
-8. Spamurai will now automatically scan and highlight spam comments
+2. Pull the main branch of the Spamurai repo
+3. Go to chrome://extensions/ and enable developer mode, then click load unpacked and select the Spamurai-AI-web-extension
+4. Go to a YouTube video page.  
+5. Spamurai will now automatically scan and highlight spam comments
 
 
 
