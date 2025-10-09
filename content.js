@@ -284,48 +284,52 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
   });
 
   // Watch for new comments with MutationObserver
-  function observeComments() {
-    // Detect if Shorts or regular video
-    const isShorts = window.location.pathname.includes('/shorts/');
+  let spamuraiObserver = null;
 
-    // Try multiple selectors based on page type
-    let commentSection;
-    if (isShorts) {
-      // Shorts comment selectors
-      commentSection = document.querySelector('ytd-comments#comments') ||
-                       document.querySelector('ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-comments-section"]') ||
-                       document.querySelector('#comments');
-    } else {
-      // Regular video comment selectors
-      commentSection = document.querySelector('ytd-item-section-renderer#sections') ||
-                       document.querySelector('ytd-comments#comments');
-    }
+function observeComments() {
+  // Detect if Shorts or regular video
+  const isShorts = window.location.pathname.includes('/shorts/');
 
-    if (!commentSection) {
-      console.log(`Spamurai: Comment section not loaded yet (${isShorts ? 'Shorts' : 'Video'}), retrying...`);
-      setTimeout(observeComments, 3000);
-      return;
-    }
-
-    console.log(`Spamurai: Found comment section for ${isShorts ? 'Shorts' : 'Video'}`);
-
-    // Initial scan
-    analyzeComments();
-
-    // Clear any previous observer
-    if (observer) observer.disconnect();
-
-    // Watch for changes
-    let observer = new MutationObserver(() => {
-      clearTimeout(analysisTimeout);
-      analysisTimeout = setTimeout(() => {
-        analyzeComments();
-      }, 400); // Wait 300ms after DOM stops changing
-    });
-
-    observer.observe(commentSection, { childList: true, subtree: true });
-    console.log('Spamurai: Continuous spam detection active');
+  // Try multiple selectors based on page type
+  let commentSection;
+  if (isShorts) {
+    // Shorts comment selectors
+    commentSection = document.querySelector('ytd-comments#comments') ||
+                     document.querySelector('ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-comments-section"]') ||
+                     document.querySelector('#comments');
+  } else {
+    // Regular video comment selectors
+    commentSection = document.querySelector('ytd-item-section-renderer#sections') ||
+                     document.querySelector('ytd-comments#comments');
   }
+
+  if (!commentSection) {
+    console.log(`Spamurai: Comment section not loaded yet (${isShorts ? 'Shorts' : 'Video'}), retrying...`);
+    setTimeout(observeComments, 3000);
+    return;
+  }
+
+  console.log(`Spamurai: Found comment section for ${isShorts ? 'Shorts' : 'Video'}`);
+
+  // Initial scan
+  analyzeComments();
+
+  // Clear any previous observer
+  if (spamuraiObserver) {
+    spamuraiObserver.disconnect();
+  }
+
+  // Watch for changes
+  spamuraiObserver = new MutationObserver(() => {
+    clearTimeout(analysisTimeout);
+    analysisTimeout = setTimeout(() => {
+      analyzeComments();
+    }, 400);
+  });
+
+  spamuraiObserver.observe(commentSection, { childList: true, subtree: true });
+  console.log('Spamurai: Continuous spam detection active');
+    }
 
   // Initialize AI, then start observing
   initAI().then(() => {
