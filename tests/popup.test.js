@@ -86,11 +86,11 @@ describe('Popup UI - REAL CODE TESTS', () => {
 
       // First with AI
       updateUI(stats, true);
-      expect(document.getElementById('powered-by').innerHTML).toContain('AI + keywords');
+      expect(document.getElementById('powered-by').innerHTML).toContain('gemini nano');
 
       // Then without AI
       updateUI(stats, false);
-      expect(document.getElementById('powered-by').innerHTML).toContain('gemini nano');
+      expect(document.getElementById('powered-by').textContent).toBe('powered by keyword filtering');
     });
   });
 

@@ -89,8 +89,12 @@ async function classifyComment(text, aiSession, aiAvailable) {
 
 // Extract video ID from URL
 function getVideoId(url) {
+  // Only process YouTube URLs - check for proper domain boundaries
+  if (!url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)/)) {
+    return null;
+  }
   // Match regular video
-  let match = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+  let match = url.match(/[?&]v=([a-zA-Z0-9_-]{11})(?:[&\s#]|$)/);
   if (match) return match[1];
 
   // Match Shorts
