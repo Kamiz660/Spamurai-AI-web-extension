@@ -11,6 +11,7 @@ tests/
 ├── classification.test.js # Spam classification logic tests
 ├── popup.test.js          # Popup UI and interaction tests
 ├── content.test.js        # Content script integration tests
+├── observer.test.js
 └── e2e.test.js           # End-to-end user flow tests
 ```
 

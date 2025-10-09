@@ -83,13 +83,68 @@ async function classifyComment(text, aiSession, aiAvailable) {
   return { classification: 'suspicious', usedAI: false };
 }
 
+// ============================================
+// UTILITY FUNCTIONS (Testable)
+// ============================================
+
+// Extract video ID from URL
+function getVideoId(url) {
+  // Match regular video
+  let match = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+  if (match) return match[1];
+
+  // Match Shorts
+  match = url.match(/\/shorts\/([a-zA-Z0-9_-]{11})/);
+  if (match) return match[1];
+
+  return null;
+}
+
+// Check if URL is a Shorts video
+function isShorts(url) {
+  return url.includes('/shorts/');
+}
+
+// Get comment section selectors based on video type
+function getCommentSectionSelectors(isShortsVideo) {
+  if (isShortsVideo) {
+    return [
+      'ytd-comments#comments',
+      'ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-comments-section"]',
+      '#comments'
+    ];
+  } else {
+    return [
+      'ytd-item-section-renderer#sections',
+      'ytd-comments#comments'
+    ];
+  }
+}
+
+// Find comment section in DOM
+function findCommentSection(url) {
+  const shorts = isShorts(url);
+  const selectors = getCommentSectionSelectors(shorts);
+
+  for (const selector of selectors) {
+    const section = document.querySelector(selector);
+    if (section) return section;
+  }
+
+  return null;
+}
+
 // Export for testing (only in test environment)
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     SPAM_KEYWORDS,
     classifyByKeywords,
     classifyWithAI,
-    classifyComment
+    classifyComment,
+    getVideoId,
+    isShorts,
+    getCommentSectionSelectors,
+    findCommentSection
   };
 }
 
@@ -374,30 +429,19 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
   let spamuraiObserver = null;
 
   function observeComments() {
-    // Detect if Shorts or regular video
-    const isShorts = window.location.pathname.includes('/shorts/');
-
-    // Try multiple selectors based on page type
-    let commentSection;
-    if (isShorts) {
-      // Shorts comment selectors
-      commentSection = document.querySelector('ytd-comments#comments') ||
-                       document.querySelector('ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-comments-section"]') ||
-                       document.querySelector('#comments');
-    } else {
-      // Regular video comment selectors
-      commentSection = document.querySelector('ytd-item-section-renderer#sections') ||
-                       document.querySelector('ytd-comments#comments');
-    }
+    // Use the utility function to find comment section
+    const commentSection = findCommentSection(window.location.href);
 
     if (!commentSection) {
-      console.log(`Spamurai: Comment section not loaded yet (${isShorts ? 'Shorts' : 'Video'}), retrying...`);
+      const shorts = isShorts(window.location.href);
+      console.log(`Spamurai: Comment section not loaded yet (${shorts ? 'Shorts' : 'Video'}), retrying...`);
       // 500ms retry
       setTimeout(observeComments, 500);
       return;
     }
 
-    console.log(`Spamurai: Found comment section for ${isShorts ? 'Shorts' : 'Video'}`);
+    const shorts = isShorts(window.location.href);
+    console.log(`Spamurai: Found comment section for ${shorts ? 'Shorts' : 'Video'}`);
 
     // Initial scan
     analyzeComments();
@@ -429,19 +473,6 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
       reanalyzeSuspiciousComments();
     }
   });
-
-  // Add getVideoId function
-  function getVideoId(url) {
-    // Match regular video
-    let match = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
-    if (match) return match[1];
-
-    // Match Shorts
-    match = url.match(/\/shorts\/([a-zA-Z0-9_-]{11})/);
-    if (match) return match[1];
-
-    return null;
-  }
 
   // Track current video
   let currentVideoId = getVideoId(location.href);
