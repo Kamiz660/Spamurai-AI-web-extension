@@ -1,5 +1,3 @@
-# Spamurai
-
 ## Overview
 Manifest is set to YouTube, so the scripts won’t run on other pages.
 ---
