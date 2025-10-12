@@ -2,15 +2,18 @@
 const SPAM_KEYWORDS = {
   high: [
     'buy now', 'click here', 'free money', 'make money fast', 'earn cash',
-    'bitcoin', 'crypto', 'investment opportunity', 'get rich', 'prize winner',
+    'investment opportunity', 'get rich', 'prize winner',
     'congratulations you won', 'claim your prize', 'limited time offer',
     'act now', 'subscribe to my channel', 'check out my channel', 'sub4sub',
-    'onlyfans', 'telegram', 'whatsapp me', 'dm me', 'text me at'
+    'onlyfans', 'telegram', 'whatsapp me', 'dm me', 'text me at','check out my video',
+    'click link', 'check out my new video', 'vitalii', 'Buy crypto now!',
   ],
   medium: [
-    'check out', 'visit my', 'link in bio', 'click link', 'follow me',
-    'thanks for sharing', 'great info', 'nice video', 'awesome content',
-    'check my channel', 'new video', 'subscribe', 'sub back'
+    'visit my', 'link in bio', 'click link', 'follow me',
+    'sub back', 'bitcoin', 'crypto', 'discount code', 'giveaway',
+    'free trial', 'work from home', 'side hustle', 'online job',
+    'subscribe for updates','check out my similar content',
+    'money investing for me'
   ]
 };
 
@@ -20,20 +23,21 @@ function classifyByKeywords(text) {
 
   // Check high-risk keywords
   for (const keyword of SPAM_KEYWORDS.high) {
-    if (lowerText.includes(keyword)) {
+    if (lowerText.includes(keyword.toLowerCase())) {  // ✅ FIXED
       return 'spam';
     }
   }
-
-  // Check medium-risk keywords
+  
+  // Check medium-risk keywords  
   for (const keyword of SPAM_KEYWORDS.medium) {
-    if (lowerText.includes(keyword)) {
+    if (lowerText.includes(keyword.toLowerCase())) {  // ✅ FIXED
       return 'suspicious';
     }
   }
 
   return 'safe';
 }
+
 
 // Classify comment using AI (for suspicious cases only)
 async function classifyWithAI(text, aiSession, aiAvailable) {
@@ -264,6 +268,26 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
       }
     });
   }
+  
+// Check if comment is from channel owner
+function isChannelOwnerComment(threadElement) {
+  // YouTube marks channel owner comments with special badges/attributes
+  // Check for creator badge
+  const creatorBadge = threadElement.querySelector('ytd-author-comment-badge-renderer[creator]');
+  if (creatorBadge) return true;
+
+  // Check for creator attribute on comment renderer
+  const commentRenderer = threadElement.querySelector('ytd-comment-renderer[is-creator]');
+  if (commentRenderer) return true;
+
+  // Alternative: Check for "creator" class on badge
+  const anyCreatorBadge = threadElement.querySelector('[class*="creator"]');
+  if (anyCreatorBadge && anyCreatorBadge.closest('#author-comment-badge')) {
+    return true;
+  }
+
+  return false;
+}
 
   // Analyze comments with instant keyword detection
   async function analyzeComments() {
@@ -271,6 +295,10 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
     let newSuspicious = [];
 
     for (const thread of threads) {
+        // Skips channel owner comments
+      if (isChannelOwnerComment(thread)) {
+        continue;
+      }
       const commentEl = thread.querySelector('#content-text');
       const text = commentEl ? commentEl.textContent.trim() : null;
 
@@ -503,7 +531,11 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
   }, true);
 
   // Periodic re-scan every 3s
-  setInterval(() => {
-    analyzeComments();
-  }, 3000);
+ let runs = 0;
+ const id = setInterval(() => {
+  analyzeComments();
+  runs++;
+  if (runs >= 2) clearInterval(id);
+}, 3000);
+
 }
