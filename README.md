@@ -23,7 +23,9 @@ Manifest is set to YouTube, so the scripts won’t run on other pages.
     });
   },
 });``
-5. Spamurai will automatically scan and highlight spam comments.
+5. Open a new tab and go to: chrome://flags
+6. Set "Prompt API for Gemini Nano" to "Enabled"
+7. Spamurai will automatically scan and highlight spam comments.
 
 ## Troubleshooting
 
@@ -31,8 +33,7 @@ If Spamurai AI isn’t working properly, follow these steps:
 
 1. Open a new tab and go to: chrome://flags
 2. Set "Enables optimization guide on device" to "Enabled BypassPerfRequirement"
-3. Set "Prompt API for Gemini Nano" to "Enabled"
-4. Then relaunch Chrome
+3. Then relaunch Chrome
 
 ---
 
